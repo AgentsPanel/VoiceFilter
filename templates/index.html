@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Noise Reduction - Kalman Filter</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container my-5">
+        <!-- Header -->
+        <div class="row mb-5">
+            <div class="col-12 text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-wave-square me-3"></i>
+                    Audio Noise Reduction
+                </h1>
+                <p class="lead text-muted">
+                    Upload your audio file and reduce background noise using advanced Kalman filtering
+                </p>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Upload Section -->
+        {% if not show_results %}
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow">
+                    <div class="card-body p-5">
+                        <h3 class="card-title text-center mb-4">
+                            <i class="fas fa-upload me-2"></i>
+                            Upload Audio File
+                        </h3>
+                        
+                        <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" id="uploadForm">
+                            <div class="mb-4">
+                                <label for="file" class="form-label">Select Audio File</label>
+                                <input class="form-control form-control-lg" type="file" id="file" name="file" 
+                                       accept=".wav,.mp3,.flac,.m4a,.ogg" required>
+                                <div class="form-text">
+                                    Supported formats: WAV, MP3, FLAC, M4A, OGG (Max 50MB)
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                                    <i class="fas fa-magic me-2"></i>
+                                    Process Audio
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Processing Indicator -->
+                        <div id="processingIndicator" class="text-center mt-4" style="display: none;">
+                            <div class="spinner-border text-primary me-2" role="status"></div>
+                            <span>Processing your audio file...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Results Section -->
+        {% if show_results %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Processing Complete
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        <!-- Audio Comparison -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-file-audio me-2"></i>
+                                    Original Audio
+                                </h5>
+                                <audio controls class="w-100 mb-3" id="originalAudio">
+                                    <source src="{{ url_for('serve_audio', folder='original', filename=original_file) }}" type="audio/wav">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <canvas id="originalWaveform" class="waveform-canvas"></canvas>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-magic me-2"></i>
+                                    Processed Audio
+                                </h5>
+                                <audio controls class="w-100 mb-3" id="processedAudio">
+                                    <source src="{{ url_for('serve_audio', folder='processed', filename=processed_file) }}" type="audio/wav">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <canvas id="processedWaveform" class="waveform-canvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <a href="{{ url_for('download_file', filename=processed_file) }}" 
+                                   class="btn btn-success btn-lg me-3">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download Processed Audio
+                                </a>
+                                <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
+                                    <i class="fas fa-plus me-2"></i>
+                                    Process Another File
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Information -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-info-circle me-2"></i>
+                            About Kalman Filter Noise Reduction
+                        </h5>
+                        <p class="card-text">
+                            This application uses a 1D Kalman filter to reduce background noise in audio files. 
+                            The filter employs a random-walk model to estimate the clean signal from noisy measurements, 
+                            effectively suppressing consistent background noise while preserving the original audio content.
+                        </p>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Process Noise (Q):</strong> 1e-5<br>
+                                <small class="text-muted">Controls model trust</small>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Measurement Noise (R):</strong> 0.25<br>
+                                <small class="text-muted">Noise variance estimate</small>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Processing:</strong> Sample-by-sample<br>
+                                <small class="text-muted">Real-time compatible</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/audio-handler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/waveform.js') }}"></script>
+    
+    {% if show_results %}
+    <script>
+        // Initialize waveform visualizations
+        document.addEventListener('DOMContentLoaded', function() {
+            const waveformManager = new WaveformManager();
+            waveformManager.loadWaveform('originalWaveform', '/waveform/original/{{ original_file }}');
+            waveformManager.loadWaveform('processedWaveform', '/waveform/processed/{{ processed_file }}');
+        });
+    </script>
+    {% endif %}
+</body>
+</html>
