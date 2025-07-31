@@ -177,16 +177,21 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/audio-handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/waveform.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/realtime-audio.js') }}"></script>
     
-    {% if show_results %}
     <script>
-        // Initialize waveform visualizations
+        // Initialize components
         document.addEventListener('DOMContentLoaded', function() {
+            {% if show_results %}
+            // Initialize waveform visualizations for processed files
             const waveformManager = new WaveformManager();
             waveformManager.loadWaveform('originalWaveform', '/waveform/original/{{ original_file }}');
             waveformManager.loadWaveform('processedWaveform', '/waveform/processed/{{ processed_file }}');
+            {% endif %}
+            
+            // Initialize real-time audio processor
+            const realtimeProcessor = new RealtimeAudioProcessor();
         });
     </script>
-    {% endif %}
 </body>
 </html>

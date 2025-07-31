@@ -121,5 +121,10 @@ def get_waveform_data(folder, filename):
         app.logger.error(f"Error getting waveform data: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/static/js/kalman-processor.js')
+def serve_worklet():
+    """Serve the audio worklet processor with proper MIME type"""
+    return send_file('static/js/kalman-processor.js', mimetype='application/javascript')
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
