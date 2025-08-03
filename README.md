@@ -31,7 +31,7 @@ A web-based application for enhancing audio quality using DeepFilterNet. Upload 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/VoiceFilter.git
+git clone https://github.com/AgentsPanel/VoiceFilter.git
 cd VoiceFilter
 ```
 
